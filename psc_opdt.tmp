@@ -1,0 +1,264 @@
+#! /bin/sh
+
+
+OUTFILE=REPOUT
+VAR=REPVAR
+SAMP=ASN
+
+>$OUTFILE.out
+>$OUTFILE.path
+for ((CHR=1;CHR<=22;CHR++))
+do 
+
+awk -v var=$VAR -v chr=$CHR 'NR>1 {
+              midpos=($2+$3)/2
+              cm=midpos/1000000
+              print cm, chr, $6, $7, $2, midpos, $3, $4, $8, -log($8)*0.434294482, var
+}' ${VAR}.${CHR}.$SAMP.sum.genescores.chr${CHR}.txt  >>$OUTFILE.xx
+
+
+awk -v var=$VAR -v chr=$CHR 'NR>1 && $2!="NA" {
+                print  chr, $0, -log($(NF-1))*0.434294482, -log($(NF))*0.434294482, var
+}' ${VAR}.${CHR}.PathwaySet--msigBIOCARTA_KEGG_REACTOME--${SAMP}.sum.chr${CHR}.txt >>$OUTFILE.path
+done
+
+sort -n -k2,2 -k1,1 $OUTFILE.xx >$OUTFILE.x1
+head $OUTFILE.x1 >$OUTFILE.x1.hd
+
+#
+#
+
+POSCM=1
+awk -v pcm=$POSCM -v plotscript="$OUTFILE.XYFILE" '
+BEGIN { cumulative_pos=0
+        clength[0]=0
+        nchrom=1
+        last_pos=-1
+}
+      { this_pos=$pcm
+        if (this_pos<last_pos) {
+          cumulative_pos+=last_pos+5
+          clength[nchrom]=cumulative_pos
+          tick[nchrom]=cumulative_pos-0.5*(cumulative_pos-clength[nchrom-1])
+          board[nchrom]=cumulative_pos-5
+          nchrom++
+        }
+        print cumulative_pos+this_pos, $0
+        last_pos=$pcm
+}
+END   { if (nchrom>1) {
+        print "set term postscript portrait enhanced color solid  \"Times-Roman\" 10 " > plotscript
+        print "set out  \"PSFILENAME.ps\" " > plotscript
+        print "set nokey" > plotscript
+        print "set lmargin 0.01" > plotscript
+        print "set rmargin 0.01" > plotscript
+        print "set noxtics" > plotscript
+        print "set tics scale 0.5" > plotscript
+        print "set yrange [REPYRANGEA:REPYRANGEB] " > plotscript
+        print "set xrange [0:" cumulative_pos+this_pos "]" > plotscript
+        print "set x2tic nomirror ( \"Chr 1\" " tick[1] ", \\" > plotscript
+        for(i=2;i<nchrom;i++) {
+          print "\"" i "\" " tick[i] ", \\" > plotscript
+        }
+#        print "\"X\" " cumulative_pos+this_pos-90 ") font \"Times-Roman,8 \" " > plotscript
+       print "\"22\" " cumulative_pos+this_pos-20 ") font \"Times-Roman,8 \" " > plotscript
+        }
+        for(i=1;i<nchrom;i++) {
+          print "set arrow from " board[i] ",graph 0 to " board[i] ",graph 1 nohead lt 0  " > plotscript
+        }
+##        print "plot \"long.dat\" with lines" > plotscript
+}' $OUTFILE.x1 >xx.lng
+
+awk '{ printf "%11.6f  %12s %3.0f %5.0f %10.0f %10.0f %10.0f %6.3e %7.2f %5s %3s\n",
+                 $1, $4, $3, $5, $6, $7, $8, $10, $11, $12, $9 
+}' xx.lng  >$OUTFILE.out
+
+QQDATA=REPRUN.REPVAR.Rqq 
+PQQFILE=REPRUN.REPVAR.qq
+PMHFILE=REPRUN.REPVAR.mh
+
+awk '{printf "%11.6f %2.0f %7.2f %6.3e %15s %10.0f\n",
+                $1, $3, $9, $8, $2, $6
+}' $OUTFILE.out >$QQDATA
+
+awk '$3>3 { print }' $QQDATA | sort -nr -k3,3 >$QQDATA.3
+
+TOPCHR=REPRUN.REPVAR.top
+>$TOPCHR
+for ((CHR=1;CHR<=22;CHR++))
+do
+awk -v chr=$CHR '$2==chr { print }' $QQDATA | sort -n -k3,3 | tail -1  >>$TOPCHR 
+done
+
+head -8 $QQDATA.3 >$QQDATA.head
+
+SNPNUM=`wc -l $QQDATA | awk '{print $1 }' `
+
+TOP1=`awk 'NR==1 {print $5}' $QQDATA.head`
+TOP2=`awk 'NR==2 {print $5}' $QQDATA.head`
+MAX=`awk 'NR==1 {print $4}' $QQDATA.head`
+
+cat << __EOT__  >$PQQFILE.xx
+#! /bin/sh
+REPVAR <-read.table("$QQDATA",colClasses=c("numeric","numeric","numeric","numeric","character","numeric"), h=F)
+attach(REPVAR)
+names(REPVAR) <- c("lng", "CHR", "lpG", "P", "GENE", "BP")
+head(REPVAR)
+par(bg="white")
+png(filename="$PQQFILE.png", width = 680, height = 680, pointsize = 12, bg ="white", res=NA, type="cairo")
+prb <- REPVAR\$P[which(!is.na(REPVAR\$P))]
+N <-length(prb)
+expchi <- qchisq(p = (1:N)/(N + 1), df = 1)
+obschi <- sort(qchisq(prb,df=1, lower.tail=FALSE))
+trim <- 0.5
+Nu <- floor(trim * N)
+lambda1 <- mean(obschi[1:Nu])/mean(expchi[1:Nu])
+lambda2 <- median(obschi/0.455)
+ppo <- ppoints(obschi)
+ppo <- sort(qchisq(ppo, df=1, lower.tail=FALSE))
+lambda3 <- summary(lm(obschi~0+ppo))\$coeff
+lambda3
+obs <- -log10(sort(prb,decreasing=F))
+exp <- -log10((1:N)/N)
+k <- c(1:N)
+alpha <- 0.05
+lower <- qbeta(alpha/2,k,N+1-k)
+upper <- qbeta((1-alpha/2),k,N+1-k)
+shade <- function(x1, y1, x2, y2, color = col.shade) {
+polygon(c(x1, x2[N:1]), c(y1, y2[N:1]), border = NA, col = color)
+}
+plot(exp,obs,main="PASCAL results for REPLAB (REPPROG)",xlab=expression(Expected~~-log[10](italic(p))),
+     ylab=expression(Observed~~-log[10](italic(p))), xlim=c(0,max(obs)+1), ylim=c(0,max(obs)+1))
+shade(exp,-log10(lower),exp,-log10(upper), color = "grey")
+points(exp,obs,pch=21,cex=0.8)
+mxx3 <- head(exp, n=3)
+mxy3 <- head(obs, n=3)
+head(mxx3)
+head(mxy3)
+points(mxx3[1],mxy3[1], pch=21, cex=1.5, col="red")
+points(mxx3[2],mxy3[2], pch=21, cex=1.5, col="blue")
+gap <- (mxy3[1]/3)-(mxy3[1]/3.3)
+text(mxy3[1]/3,mxy3[1]-gap, "rsA", pos=2, cex=1, col="red")
+text(mxy3[1]/3,mxy3[1]-(2*gap), "rsB", pos=2, cex=1, col="blue")
+text(mxy3[1]/2,mxy3[1]/3.5,expression(lambda), pos=4, cex=1.2, col="black")
+text(mxy3[1]/1.9,mxy3[1]/3.5,paste(" = ", format(lambda2, digits = 4), sep=""), pos=4, cex=1.2, col="black")
+text(mxy3[1]/2,mxy3[1]/4.3,paste("GENE N = ", N, sep=""), pos=4, cex=1.2, col="black")
+abline(0,1,col="red")
+write.table(lambda1,"$PQQFILE.lmd", quote=FALSE, row.names=TRUE)
+write.table(lambda2,"$PQQFILE.lmd", append=TRUE, quote=FALSE, row.names=TRUE)
+write.table(lambda3,"$PQQFILE.lmd", append=TRUE, quote=FALSE, row.names=TRUE)
+write.table(N,"$PQQFILE.lmd", append=TRUE, quote=FALSE, row.names=TRUE)
+dev.off()
+__EOT__
+
+sed -e "s/rsA/$TOP1/g" \
+    -e "s/rsB/$TOP2/g" \
+    -e "s/rsC/$TOP3/g" $PQQFILE.xx >$PQQFILE.R
+
+R CMD BATCH $PQQFILE.R
+
+rm -f .RData Rplots.pdf
+
+
+MHDATA=pmh.REPVAR.tmp 
+MHPLOTFILE=REPRUN.REPVAR.pmh
+
+sort -n -k1,1 $QQDATA >$MHDATA
+
+PDTODS=REPVAR.REPRUN.ods
+PDTEVN=REPVAR.REPRUN.evn
+>$PDTODS
+>$PDTEVN
+for i in $(seq 1 2 23)
+do
+awk  -v ii=$i '$2==ii { print }' $MHDATA >>$PDTODS
+done
+for i in $(seq 2 2 22)
+do
+awk  -v ii=$i '$2==ii { print }' $MHDATA >>$PDTEVN
+done
+
+SNPLNG=`awk 'NR==1 {print $1 }' $QQDATA.head `
+TOPSNP=`awk 'NR==1 {print $5 }' $QQDATA.head `
+SNPPRB=`awk 'NR==1 {print $4 }' $QQDATA.head `
+SNPCHR=`awk 'NR==1 {print $2 }' $QQDATA.head `
+
+
+YRANGEA=0
+YRANGEB=15
+
+awk '
+BEGIN { nplt=1
+        size=1
+        orix=0.01
+        labx=50
+        laby1=4
+        laby2=13.5
+        laby3=-3
+        laby4=-4
+        laby5=-4
+        plotlist=" 1 " 
+        nplots=split(plotlist,plots)
+        oriylist=" .85" 
+        noriys=split(oriylist,oriys)
+        sizelist=" .249 " 
+        nsizes=split(sizelist,sizes)
+        {
+          printf "set multiplot \n"  
+        }
+          for(i=1;i<=nplt;i++) {
+            if (i>nplots) break
+            print "set origin " orix ", " oriys[i]
+            print "set size " size ", " sizes[i] 
+            print "set nolabel "
+            print "set noytics "
+            print "set noy2tics "
+            print "set label 1 \"-log10(P)\" font \"Times-Roman,8\"  at -120, " laby1 " rotate by 90 "
+            print "set ytics (0,3,8) font \"Times-Roman, 7 \" "
+            if ( i==1 ) {
+            print "set tics scale 0.1 "
+            print "set xtic nomirror rotate by 330 500 font \"Times-Roman,8\" "
+            print "set label 3 \"NM" i " \" font \"Times-Roman,12\"  at 50, " laby2 " "
+            print "set label 4 \"Map Position (Mbp) \" at 1200," laby3 " font \"Times-Roman,12\" "
+            print "set label 5 \" LBA \" at 10," laby4 " font \"Times-Roman,8\" "
+            print "set label 6 \" LBB \" at 10," laby5 " font \"Times-Roman,8\" "
+            print "set label 21 \"{/Symbol=8 \337}\" at TOP1-15,REPYRANGEB tc lt -1 "
+            print "set label 22 \"TOP2 \" font \"Times-Roman,6\"  at TOP1+25,REPYRANGEB-.5 tc lt -1 "
+            print "set label 23 \"TOP3 \" font \"Times-Roman,6\"  at TOP1+25,REPYRANGEB-1  tc lt -1 "
+ print "plot \"REPVAR.REPRUN.ods\" u 1:3  w p pt 7 ps 0.3 lt 3, 3 notitle lt 0 lw 0.5, \\"
+ print "     \"REPVAR.REPRUN.evn\" u 1:3  w p pt 7 ps 0.3 lt 5, 8 notitle lt 0 lw 0.5 "
+}}}' >long.xx
+
+cat $OUTFILE.XYFILE long.xx >long.x1
+sed -e "s/PSFILENAME/$MHPLOTFILE/g" \
+    -e "s/REPYRANGEA/$YRANGEA/g" \
+    -e "s/REPYRANGEB/$YRANGEB/g" \
+    -e "s/NM1/REPLAB/g" \
+    -e "s/LBA/$VARA/g"  \
+    -e "s/LBB/$VARB/g"  \
+    -e "s/TOP1/$SNPLNG/g"  \
+    -e "s/TOP2/$TOPSNP/g"  \
+    -e "s/TOP3/$SNPPRB/g"  long.x1 >$MHPLOTFILE.plt
+
+gnuplot $MHPLOTFILE.plt
+
+rm -f $OUTFILE.xx $OUTFILE.x1 $OUTFILE.x1.hd
+rm -f long.xx long.x1 xx.lng
+rm -f $QQDATA.3 $MHDATA $PQQFILE.xx
+
+mv -f $MHPLOTFILE.ps ../REPDIR/
+mv -f $MHPLOTFILE.plt ../REPDIR/
+mv -f $PQQFILE.png ../REPDIR/
+mv -f $PQQFILE.R ../REPDIR/
+mv -f $PQQFILE.Rout ../REPDIR/
+mv -f $QQDATA ../REPDIR/
+mv -f $QQDATA.head ../REPDIR/
+mv -f $PQQFILE.lmd ../REPDIR/
+mv -f $OUTFILE.out ../REPDIR/
+mv -f $OUTFILE.path ../REPDIR/
+mv -f $TOPCHR ../REPDIR/
+mv -f $PDTODS ../REPDIR/
+mv -f $PDTEVN ../REPDIR/
+
+cd ..
+

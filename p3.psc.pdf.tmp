@@ -1,0 +1,96 @@
+set term postscript portrait enhanced color solid  "Times-Roman" 10 
+set out  "| ps2pdf - REPFILE.pdf" 
+set nokey
+set border 2 
+set lmargin 0.01
+set rmargin 0.01
+set noxtics
+set tics scale 0.5
+set yrange [0:REPMAXY] 
+set xrange [0:2984]
+set arrow from 249.211,graph 0 to 249.211,graph 1 nohead lt 0  
+set arrow from 497.255,graph 0 to 497.255,graph 1 nohead lt 0  
+set arrow from 700.093,graph 0 to 700.093,graph 1 nohead lt 0  
+set arrow from 896.02,graph 0 to 896.02,graph 1 nohead lt 0  
+set arrow from 1081.71,graph 0 to 1081.71,graph 1 nohead lt 0  
+set arrow from 1257.61,graph 0 to 1257.61,graph 1 nohead lt 0  
+set arrow from 1421.73,graph 0 to 1421.73,graph 1 nohead lt 0  
+set arrow from 1573.02,graph 0 to 1573.02,graph 1 nohead lt 0  
+set arrow from 1719.04,graph 0 to 1719.04,graph 1 nohead lt 0  
+set arrow from 1859.47,graph 0 to 1859.47,graph 1 nohead lt 0  
+set arrow from 1999.41,graph 0 to 1999.41,graph 1 nohead lt 0  
+set arrow from 2138.19,graph 0 to 2138.19,graph 1 nohead lt 0  
+set arrow from 2258.28,graph 0 to 2258.28,graph 1 nohead lt 0  
+set arrow from 2370.57,graph 0 to 2370.57,graph 1 nohead lt 0  
+set arrow from 2477.97,graph 0 to 2477.97,graph 1 nohead lt 0  
+set arrow from 2573.12,graph 0 to 2573.12,graph 1 nohead lt 0  
+set arrow from 2659.17,graph 0 to 2659.17,graph 1 nohead lt 0  
+set arrow from 2742.18,graph 0 to 2742.18,graph 1 nohead lt 0  
+set arrow from 2806.27,graph 0 to 2806.27,graph 1 nohead lt 0  
+set arrow from 2874.18,graph 0 to 2874.18,graph 1 nohead lt 0  
+set arrow from 2927.27,graph 0 to 2927.27,graph 1 nohead lt 0  
+set multiplot 
+set origin 0.01, .75
+set size 1, .22
+set nolabel 
+set noytics 
+set noy2tics 
+#set ytics nomirror out ("10^-^5" 5, "5x10^-^8" 7.8, "10^-^1^0" 10) font "Times-Roman, 7 " 
+set ytics nomirror out ("10^-^5" 5, "5x10^-^8" 7.8) font "Times-Roman, 7 " 
+set tics scale 0.4
+set noxtics 
+set nox2tics 
+set label 1 "-LOG_1_0 (P)" font "Garamond-Premier-Pro-Italic,10" tc lt -1 at graph -0.07, 0.3 left rotate by 90 
+set label 2 "REPNAME1 (Sample N=REPNUM1  Gene N=REPSNPN1) [REPPROG1]" font "Times-Roman,10"  at graph 0.02, 0.90 
+set label 21 "REPSNP1 " font "Times-Roman,7"  at REPPOS1+20, REPTOP1+0.3 tc lt 1 
+plot "u1.ods" u 1:3  w p pt 7 ps 0.4 lt 3, 7.8 notitle lt 1 lw 0.3, 5 notitle lt 0 lw 0.5, \
+     "u1.evn" u 1:3  w p pt 7 ps 0.4 lt 5 lw 0.9, 0 notitle lt -1 lw 2
+set origin 0.01, .55
+set size 1, .22
+set nolabel 
+set noytics 
+set noy2tics 
+set ytics nomirror out ("10^-^5" 5, "5x10^-^8" 7.8) font "Times-Roman, 7 " 
+set tics scale 0.4
+set noxtics 
+set nox2tics 
+set nokey 
+set label 1 "-LOG_1_0 (P)" font "Garamond-Premier-Pro-Italic,10" tc lt -1 at graph -0.07, 0.3 left rotate by 90 
+set label 2 "REPNAME2 (Sample N=REPNUM2  Gene N=REPSNPN2) [REPPROG2]" font "Times-Roman,10"  at graph 0.02, 0.90 
+set label 21 "REPSNP2 " font "Times-Roman,7"  at REPPOS2+20, REPTOP2+0.3 tc lt 1 
+plot "u2.ods" u 1:3  w p pt 7 ps 0.4 lt 3, 7.8 notitle lt 1 lw 0.3, 5 notitle lt 0 lw 0.5, \
+     "u2.evn" u 1:3  w p pt 7 ps 0.4 lt 5 lw 0.9, 0 notitle lt -1 lw 2
+set origin 0.01, .34
+set size 1, .23
+set nolabel 
+set noytics 
+set noy2tics 
+set ytics nomirror out ("10^-^5" 5, "5x10^-^8" 7.8) font "Times-Roman, 7 " 
+set tics scale 0.4
+set xtic nomirror ( "Chr 1" 127.106, \
+"2" 378.233, \
+"3" 603.674, \
+"4" 803.056, \
+"5" 993.865, \
+"6" 1174.66, \
+"7" 1344.67, \
+"8" 1502.38, \
+"9" 1651.03, \
+"10" 1794.26, \
+"11" 1934.44, \
+"12" 2073.8, \
+"13" 2203.24, \
+"14" 2319.43, \
+"15" 2429.27, \
+"16" 2530.54, \
+"17" 2621.14, \
+"18" 2705.68, \
+"19" 2779.23, \
+"20" 2845.23, \
+"21" 2905.73, \
+"22" 2960.36) rotate by 0 font "Times-Roman,8 " 
+set label 1 "-LOG_1_0 (P)" font "Garamond-Premier-Pro-Italic,10" tc lt -1 at graph -0.07, 0.3 left rotate by 90 
+set label 2 "REPNAME3 (Sample N=REPNUM3  Gene N=REPSNPN3) [REPPROG3]" font "Times-Roman,10"  at graph 0.02, 0.90 
+set label 21 "REPSNP3 " font "Times-Roman,7"  at REPPOS3+20, REPTOP3+0.3 tc lt 1 
+plot "u3.ods" u 1:3  w p pt 7 ps 0.4 lt 3, 7.8 notitle lt 1 lw 0.3, 5 notitle lt 0 lw 0.5, \
+     "u3.evn" u 1:3  w p pt 7 ps 0.4 lt 5 lw 0.9, 0 notitle lt -1 lw 2
